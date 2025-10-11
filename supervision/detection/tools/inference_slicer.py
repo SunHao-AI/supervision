@@ -363,7 +363,7 @@ class InferenceSlicerBatch:
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
         self.callback = callback
-        self.executor = ThreadPoolExecutor(max_workers=thread_workers)
+        self.thread_workers = thread_workers
 
     def __call__(self, image: np.ndarray) -> Detections:
         """
@@ -410,40 +410,18 @@ class InferenceSlicerBatch:
 
         ###################################################################################
         # 1.获得所有裁剪图片
-        import time
-        t0 = time.time()
-        # slice_images = [crop_image(image=image, xyxy=offset) for offset in offsets]
-
-        futures = [
-            self.executor.submit(crop_image, image=image, xyxy=offset)
-            for offset in offsets
-        ]
-        wait(futures)
-        slice_images = [future.result() for future in futures]
-
-        t1 = time.time()
+        slice_images = [crop_image(image=image, xyxy=offset) for offset in offsets]
         # 2.batch推理
         detections_list = self.callback(slice_images)
-        t2 = time.time()
         # 3.坐标转换
-        # detections_list = [
-        #     move_detections(
-        #         detections=detections,
-        #         offset=offset[:2],
-        #         resolution_wh=resolution_wh
-        #     )
-        #     for detections, offset in zip(detections_list, offsets)
-        # ]
-
-        futures = [
-            self.executor.submit(move_detections, detections=detections, offset=offset[:2], resolution_wh=resolution_wh)
+        detections_list = [
+            move_detections(
+                detections=detections,
+                offset=offset[:2],
+                resolution_wh=resolution_wh
+            )
             for detections, offset in zip(detections_list, offsets)
         ]
-        wait(futures)
-        detections_list = [future.result() for future in futures]
-
-        t3 = time.time()
-        print(f"t1-t0: {t1-t0:.3f}s, t2-t1: {t2-t1:.3f}s, t3-t2: {t3-t2:.3f}s")
         ###################################################################################
 
         merged = Detections.merge(detections_list=detections_list)
@@ -463,10 +441,6 @@ class InferenceSlicerBatch:
                 category=SupervisionWarnings,
             )
             return merged
-
-    def __del__(self):
-        # 在对象销毁时关闭线程池
-        self.executor.shutdown(wait=True)
 
     def _run_callback(self, image, offset) -> Detections:
         """
