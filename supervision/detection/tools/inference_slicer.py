@@ -342,10 +342,11 @@ class InferenceSlicerBatch:
         slice_wh: tuple[int, int] = (320, 320),
         overlap_ratio_wh: tuple[float, float] | None = (0.2, 0.2),
         overlap_wh: tuple[int, int] | None = None,
-        overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
+        overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_MERGE,
         iou_threshold: float = 0.5,
-        overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
+        overlap_metric: OverlapMetric | str = OverlapMetric.IOS,
         thread_workers: int = 1,
+        inference_org_image: bool = False,
     ):
         if overlap_ratio_wh is not None:
             warn_deprecated(
@@ -364,6 +365,7 @@ class InferenceSlicerBatch:
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
         self.callback = callback
         self.thread_workers = thread_workers
+        self.inference_org_image = inference_org_image
 
     def __call__(self, image: np.ndarray) -> Detections:
         """
@@ -406,6 +408,7 @@ class InferenceSlicerBatch:
             slice_wh=self.slice_wh,
             overlap_ratio_wh=self.overlap_ratio_wh,
             overlap_wh=self.overlap_wh,
+            inference_org_image=self.inference_org_image
         )
 
         ###################################################################################
@@ -469,6 +472,7 @@ class InferenceSlicerBatch:
         slice_wh: tuple[int, int],
         overlap_ratio_wh: tuple[float, float] | None,
         overlap_wh: tuple[int, int] | None,
+        inference_org_image: bool = False
     ) -> np.ndarray:
         """
         Generate offset coordinates for slicing an image based on the given resolution,
@@ -526,6 +530,11 @@ class InferenceSlicerBatch:
         ymax = np.clip(ymin + slice_height, 0, image_height)
 
         offsets = np.stack([xmin, ymin, xmax, ymax], axis=-1).reshape(-1, 4)
+
+        # 如果需要推理原图, 再加入一个原图的切片信息
+        if inference_org_image:
+            org_info= np.array([[0, 0, image_width, image_height]])
+            offsets = np.concatenate([offsets, org_info], axis=0)
 
         return offsets
 
