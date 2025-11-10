@@ -338,7 +338,7 @@ class InferenceSlicerBatch:
 
     def __init__(
         self,
-        callback: Callable[[np.ndarray], Detections],
+        callback: Callable[list[np.ndarray], list[Detections]],
         slice_wh: tuple[int, int] = (320, 320),
         overlap_ratio_wh: tuple[float, float] | None = (0.2, 0.2),
         overlap_wh: tuple[int, int] | None = None,
@@ -522,8 +522,8 @@ class InferenceSlicerBatch:
         hs = np.arange(0, image_height, height_stride)
 
         # 保证每个切片尺寸一致, 好处: 防止边缘的切片形状与实际差距过大(resize后发生较大形变); 统一的shape在ultralytics框架中进行batch推理时, 不会进行letterbox操作, 节省时间
-        ws[-1] = image_width - slice_width
-        hs[-1] = image_height - slice_height
+        ws[-1] = max(0, image_width - slice_width)
+        hs[-1] = max(0, image_height - slice_height)
 
         xmin, ymin = np.meshgrid(ws, hs)
         xmax = np.clip(xmin + slice_width, 0, image_width)
