@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed, wait
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 
@@ -533,10 +533,11 @@ class InferenceSlicerBatch:
 
         # 如果需要推理原图, 再加入一个原图的切片信息
         if inference_org_image:
-            org_info= np.array([[0, 0, image_width, image_height]])
+            org_info = np.array([[0, 0, image_width, image_height]])
             offsets = np.concatenate([offsets, org_info], axis=0)
 
-        return offsets
+        # 去重
+        return np.unique(offsets, axis=0)
 
     @staticmethod
     def _validate_overlap(
