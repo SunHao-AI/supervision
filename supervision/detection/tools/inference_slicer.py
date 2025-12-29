@@ -5,6 +5,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
+from PIL import Image
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
@@ -367,7 +368,7 @@ class InferenceSlicerBatch:
         self.thread_workers = thread_workers
         self.inference_org_image = inference_org_image
 
-    def __call__(self, image: np.ndarray) -> Detections:
+    def __call__(self, image: Image.Image | np.ndarray) -> Detections:
         """
         Performs slicing-based inference on the provided image using the specified
             callback.
@@ -402,7 +403,14 @@ class InferenceSlicerBatch:
             detections = slicer(image)
             ```
         """
-        resolution_wh = (image.shape[1], image.shape[0])
+        if isinstance(image, Image.Image):
+            resolution_wh = (image.size[1], image.size[0])
+        elif isinstance(image, np.ndarray):
+            resolution_wh = (image.shape[1], image.shape[0])
+        else:
+            raise ValueError(
+                "Image must be either a numpy array or a PIL image."
+            )
         offsets = self._generate_offset(
             resolution_wh=resolution_wh,
             slice_wh=self.slice_wh,
