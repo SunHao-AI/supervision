@@ -404,7 +404,7 @@ class InferenceSlicerBatch:
             ```
         """
         if isinstance(image, Image.Image):
-            resolution_wh = (image.size[1], image.size[0])
+            resolution_wh = (image.size[0], image.size[1])
         elif isinstance(image, np.ndarray):
             resolution_wh = (image.shape[1], image.shape[0])
         else:
