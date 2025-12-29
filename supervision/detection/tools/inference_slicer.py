@@ -339,7 +339,7 @@ class InferenceSlicerBatch:
 
     def __init__(
         self,
-        callback: Callable[list[np.ndarray], list[Detections]],
+        callback: Callable[[list[Image.Image | np.ndarray]], list[Detections]],
         slice_wh: tuple[int, int] = (320, 320),
         overlap_ratio_wh: tuple[float, float] | None = (0.2, 0.2),
         overlap_wh: tuple[int, int] | None = None,
